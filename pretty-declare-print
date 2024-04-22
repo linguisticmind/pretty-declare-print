@@ -1,0 +1,420 @@
+#!/usr/bin/env bash
+
+# pretty-declare-print - prettify output of declare -p
+# copyright (c) 2024  Alex Rogers (https://github.com/linguisticmind)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+version=0.1.0
+
+getopt -T > /dev/null
+[[ $? != 4 ]] && { printf '[%s] %s\n' "${BASH_SOURCE##*/}" 'Enhanced getopt is required to run this script.' >&2; exit 1; }
+
+help='declare -p [<name> ...] |[&] pretty-declare-print [<options>]
+pretty-declare-print [<options>] <name> ...
+
+-s, --sort-associative-arrays
+        Present contents of associative arrays in a sorted 
+        order.
+
+-S, --no-sort-associative-arrays
+        Do not present contents of associative arrays in a 
+        sorted order.
+
+-m, --multiline-arrays
+        Display each element of an array on a separate line.
+
+-M, --no-multiline-arrays
+        Do not display each element of an array on a 
+        separate line.
+
+-i, --multiline-arrays-indent=<value>
+        Width of indentation when each element of an array 
+        is displayed on a separate line.
+
+-f, --filter=[:[:]]<filter_name>[,...]
+        Modify output of pretty-declare-print with one or 
+        more filters.
+
+--filter-list
+        Print the list of available filters.
+
+-e, --filter-commands=[[+]<sed_opts> -- ]<sed_script>
+        Like -f, --filter, but takes a sed script as the 
+        value instead of a filter name.
+
+--bat-opts=[:[:]]<opts>
+        Options to bat.
+
+--sort-opts=[:[:]]<opts>
+        Options to sort.
+
+--names-pos-params-name=<value>
+        Name of a temporary variable to hold values of 
+        positional parameters.
+
+--names-spec-params-name=<value>
+        Name of a temporary variable to hold values of 
+        special parameters.
+
+--names-pipe-stderr
+        Pipe stderr of declare to pretty-declare-print 
+        together with its stdout.
+
+--names-no-pipe-stderr
+        Do not pipe stderr of declare to 
+        pretty-declare-print together with its stdout.
+
+-c, --color
+        Colorize the output.
+
+-C, --no-color
+        Disable colorization of the output.
+
+-h, --help
+        Print help.
+
+-V, --version
+        Print version information.
+'
+
+function get_opts { getopt -n "${BASH_SOURCE##*/}" -o 's,S,i:,m,M,f:,e:,c,C,h,V,' -l 'sort-associative-arrays,no-sort-associative-arrays,multiline-arrays,no-multiline-arrays,multiline-arrays-indent:,filter:,filter-list,filter-commands:,bat-opts:,sort-opts:,names-pos-params-name:,names-spec-params-name:,names-pipe-stderr,names-no-pipe-stderr,color,no-color,help,version,' -- "$@"; }
+
+opts=$(get_opts "$@")
+
+[[ $? != 0 ]] && exit 1
+
+eval set -- "$opts"
+
+declare -A filters=(
+  [omit_values]='s/=.*//; /^\s*\[|^\)$/ d'
+  [simplify]='s/^declare -[-a] //'
+  [simplify_all]='s/^declare -[^ ] //'
+  [unset_from_error]='s/^[^:]*: declare: ([[:alpha:]_][[:alnum:]_]*): not found/unset -n \1; unset "$_"/'
+)
+
+opt_sort_associative_arrays=1
+opt_multiline_arrays_indent=2
+opt_multiline_arrays=1
+opt_filter=()
+opt_filter_append=1
+opt_filter_commands=
+opt_filter_commands_append=1
+opt_filter_list=
+opt_bat_opts=()
+opt_bat_opts_append=1
+opt_sort_opts=()
+opt_sort_opts_append=1
+opt_names_pos_params_name='_pos_params'
+opt_names_spec_params_name='_spec_params'
+opt_names_pipe_stderr=
+opt_color=1
+
+test -f "${XDG_CONFIG_HOME:-$HOME/.config}"'/pretty-declare-print/config.bash' && source "$_"
+
+if [[ ! $PRETTY_DECLARE_PRINT_LIB_DIR ]]; then
+  script_dir=$(dirname -- "$(realpath -- "$BASH_SOURCE")")
+  if [[ $? != 0 ]]; then
+    printf \
+      '[%s] %s\n' \
+      "${BASH_SOURCE##*/}" \
+      'Unable to determine pretty-declare-print'\''s location. Please set the PRETTY_DECLARE_PRINT_LIB_DIR environment variable to manually point to a directory containing pretty-declare-print library files. This is normally a directory called '\''lib'\'' located in the same folder as the main script.' >&2
+    exit 1
+  fi
+fi
+
+lib_dir="${PRETTY_DECLARE_PRINT_LIB_DIR:-$script_dir/lib}"
+
+sed_scripts_filters=()
+filters_not_found=()
+
+function add_filters_to_sed_scripts_filters {
+  local filter
+  for filter; do
+    if [[ ${filters[$filter]} ]]; then
+      sed_scripts_filters+=("${filters[$filter]}")
+    else
+      filters_not_found+=("$filter")
+    fi
+  done
+}
+
+add_filters_to_sed_scripts_filters "${opt_filter[@]}"
+
+sed_scripts_filters+=(${opt_filter_commands:+"$opt_filter_commands"})
+
+while true; do
+  case $1 in
+    -s | --sort-associative-arrays ) opt_sort_associative_arrays=1; shift ;;
+    -S | --no-sort-associative-arrays ) opt_sort_associative_arrays=; shift ;;
+    -m | --multiline-arrays ) opt_multiline_arrays=1; shift ;;
+    -M | --no-multiline-arrays ) opt_multiline_arrays=; shift ;;
+    -i | --multiline-arrays-indent ) opt_multiline_arrays_indent="$2"; shift 2 ;;
+    -f | --filter ) 
+      [[ $2 =~ ^(:{0,2})(.*)$ ]]
+      case ${BASH_REMATCH[1]} in
+        : ) opt_filter_append= ;;
+        :: ) opt_filter_append=1 ;;
+      esac
+      [[ ! $opt_filter_append ]] && opt_filter=() sed_scripts_filters=()
+      while read -rd ',' filter; do
+        if [[ $filter ]]; then
+          opt_filter+=("$filter")
+          add_filters_to_sed_scripts_filters "$filter"
+        fi
+      done <<<"${BASH_REMATCH[2]}"','
+      shift 2
+    ;;
+    --filter-list ) declare -p filters | "$BASH_SOURCE"; exit ;;
+    -e | --filter-commands )
+      [[ $2 =~ ^(:{0,2})(.*)$ ]]
+      case ${BASH_REMATCH[1]} in
+        : ) opt_filter_commands_append= ;;
+        :: ) opt_filter_commands_append=1 ;;
+      esac
+      [[ ! $opt_filter_commands_append ]] && opt_filter=() sed_scripts_filters=()
+      sed_scripts_filters+=("${BASH_REMATCH[2]}")
+      shift 2
+    ;;
+    --bat-opts )
+      [[ $2 =~ ^(:{0,2})(.*)$ ]]
+      case ${BASH_REMATCH[1]} in
+        : ) opt_bat_opts_append= ;;
+        :: ) opt_bat_opts_append=1 ;;
+      esac
+      [[ ! $opt_bat_opts_append ]] && opt_bat_opts=()
+      while read -rd '' arg; do
+        opt_bat_opts+=("$arg")
+      done < <(<<<"${BASH_REMATCH[2]}" xargs printf '%s\0')
+      shift 2
+    ;;
+    --sort-opts )
+      [[ $2 =~ ^(:{0,2})(.*)$ ]]
+      case ${BASH_REMATCH[1]} in
+        : ) opt_sort_opts_append= ;;
+        :: ) opt_sort_opts_append=1 ;;
+      esac
+      [[ ! $opt_sort_opts_append ]] && opt_sort_opts=()
+      while read -rd '' arg; do
+        opt_sort_opts+=("$arg")
+      done < <(<<<"${BASH_REMATCH[2]}" xargs printf '%s\0')
+      shift 2
+    ;;
+    --names-pos-params-name ) opt_names_pos_params_name="$2"; shift 2 ;;
+    --names-spec-params-name ) opt_names_spec_params_name="$2"; shift 2 ;;
+    --names-pipe-stderr ) opt_names_pipe_stderr=1; shift ;;
+    --names-no-pipe-stderr ) opt_names_pipe_stderr=; shift ;;
+    -c | --color ) opt_color=1; shift ;;
+    -C | --no-color ) opt_color=; shift ;;
+    -h | --help ) printf '%s\n' "$help"; exit ;;
+    -V | --version ) printf '%s\n' "$version"; exit ;;
+    -- ) shift; break ;;
+    * ) printf '[%s] %s\n' "${BASH_SOURCE##*/}" 'Internal error: unable to parse option `'"$1"'`.' >&2; exit 1 ;;
+  esac
+done
+
+shopt -s extglob
+
+messages=()
+had_errors=
+
+if [[ $opt_multiline_arrays_indent != +([[:digit:]]) ]]; then
+  messages+=("$(
+    printf \
+      ${opt_color:+'\x1b[31m'}'[%s] %s'${opt_color:+'\x1b[39m'}'\n' \
+      "${BASH_SOURCE##*/}" \
+      'Invalid argument to `-i, --multiline-arrays-indent`: '\'"${opt_multiline_arrays_indent//\'/\'\\\'\'}"\''. Only positive integer values are allowed.'
+  )")
+  had_errors=1
+fi
+
+function validate_opt_arg_var_name {
+  if [[ $2 != [[:alpha:]_]*([[:alnum:]_]) ]]; then
+    messages+=("$(
+      printf \
+        ${opt_color:+'\x1b[31m'}'[%s] %s'${opt_color:+'\x1b[39m'}'\n' \
+        "${BASH_SOURCE##*/}" \
+        'Invalid argument to `'"$1"'`. Invalid variable name: '\'"$(<<<"$2" sed -E 's/[^[:alnum:]_]/\x1b[7m&\x1b[27m/g; s/^[[:digit:]]/\x1b[7m&\x1b[27m/; s/'\''/'\''\\'\'\''/g')"\''. Variable names can only consist of lettes, numbers, and underscores, and the first character cannot be a number.'
+    )")
+    had_errors=1
+  fi
+}
+
+validate_opt_arg_var_name '--names-pos-params-name' "$opt_names_pos_params_name"
+validate_opt_arg_var_name '--names-spec-params-name' "$opt_names_spec_params_name"
+
+[[ ${#messages[@]} -gt 0 ]] && printf '%s\n' "${messages[@]}" >&2
+if [[ $had_errors ]]; then
+  exit 1
+fi
+
+source "$lib_dir"'/bat_or_cat.bash'
+
+if [[ $# -gt 0 ]]; then
+
+  vars=()
+
+  pos_params_declare_start='declare -a '"$opt_names_pos_params_name"'=('
+  pos_params_declare_middle=
+  pos_params_declare_middle_all=
+  spec_params_declare_start='declare -A '"$opt_names_spec_params_name"'=('
+  spec_params_declare_middle=
+  spec_params_declare_middle_all=
+
+  messages=()
+  had_errors=
+
+  for name; do
+    case $name in
+      +([[:digit:]]) ) [[ ! $pos_params_declare_middle_all ]] && pos_params_declare_middle+=$(printf '[%s]="$%s" ' "$name" "$name") ;;
+      +([-*#?$!0]) ) [[ ! $spec_params_declare_middle_all ]] && spec_params_declare_middle+=$(printf '[%s]="$%s" ' "$(<<<"$name" sed -E 's/[#?!]/"&"/; s/\$/\\&/')" "$name") ;;
+      @ ) pos_params_declare_middle_all='for ((i=1; i<="$#"; i++)); do '"$opt_names_pos_params_name"'[$i]="${!i}"; done' pos_params_declare_middle= ;;
+      % ) spec_params_declare_middle_all='[*]="$*" [#]="$#" [?]="$?" [-]="$-" [$]="$$" [!]="$!" [0]="$0" ' pos_params_declare_middle= ;;
+      + ) vars=(); break ;;
+      "$opt_names_pos_params_name" )
+        messages+=("$(
+          printf \
+            ${opt_color:+'\x1b[31m'}'[%s] %s'${opt_color:+'\x1b[39m'}'\n' \
+            "${BASH_SOURCE##*/}" \
+            'Cannot create a temporary variable for storing positional parameters because the variable '\'"${name//\'/\'\\\'\'}"\'' was passed as <name>. Use `--names-pos-params-name` to set a different temporary variable name.'
+        )")
+        had_errors=1
+      ;;
+      "$opt_names_spec_params_name" )
+        messages+=("$(
+          printf \
+            ${opt_color:+'\x1b[31m'}'[%s] %s'${opt_color:+'\x1b[39m'}'\n' \
+            "${BASH_SOURCE##*/}" \
+            'Cannot create a temporary variable for storing special parameters because the variable '\'"${name//\'/\'\\\'\'}"\'' was passed as <name>. Use `--names-spec-params-name` to set a different temporary variable name.'
+        )")
+        had_errors=1
+      ;;
+      [[:alpha:]_]*([[:alnum:]_]) ) vars+=("$name") ;;
+      * )
+        messages+=("$(
+          printf \
+            ${opt_color:+'\x1b[31m'}'[%s] %s'${opt_color:+'\x1b[39m'}'\n' \
+            "${BASH_SOURCE##*/}" \
+            'Invalid variable name: '\'"$(<<<"$name" sed -E 's/[^[:alnum:]_]/\x1b[7m&\x1b[27m/g; s/^[[:digit:]]/\x1b[7m&\x1b[27m/; s/'\''/'\''\\'\'\''/g')"\''. Variable names can only consist of lettes, numbers, and underscores, and the first character cannot be a number.'
+        )")
+        had_errors=1
+      ;;
+    esac
+  done
+
+  [[ ${#messages[@]} -gt 0 ]] && printf '%s\n' "${messages[@]}" >&2
+  if [[ $had_errors ]]; then
+    exit 1
+  fi
+
+  pos_params_declare=
+  spec_params_declare=
+
+  [[ $pos_params_declare_middle ]] && pos_params_declare=$(printf '%s%s%s' "$pos_params_declare_start" "${pos_params_declare_middle%%+([[:space:]])}" ')')
+  [[ $pos_params_declare_middle_all ]] && pos_params_declare=$(printf '%s; %s' "${pos_params_declare_start/%/)}" "$pos_params_declare_middle_all")
+  [[ $spec_params_declare_middle ]] && spec_params_declare=$(printf '%s%s %s' "$spec_params_declare_start" "${spec_params_declare_middle%%+([[:space:]])}" ')')
+  [[ $spec_params_declare_middle_all ]] && spec_params_declare=$(printf '%s%s %s' "$spec_params_declare_start" "${spec_params_declare_middle_all%%+([[:space:]])}" ')')
+
+  [[ $spec_params_declare ]] && vars=("$opt_names_spec_params_name" "${vars[@]}")
+  [[ $pos_params_declare ]] && vars=("$opt_names_pos_params_name" "${vars[@]}")
+
+  function remove_names_mode_opts {
+
+    local opts=$(get_opts "$@")
+    
+    eval set -- "$opts"
+
+    local args=()
+
+    while true; do
+      case $1 in
+
+        -s | --sort-associative-arrays | \
+        -S | --no-sort-associative-arrays | \
+        -m | --multiline-arrays | \
+        -M | --no-multiline-arrays | \
+        -c | --color | \
+        -C | --no-color ) args+=("$1"); shift ;;
+
+        -i | --indent | \
+        -f | --filter | \
+        -e | --filter-commands | \
+        --bat-opts | \
+        --sort-opts ) args+=("$1" "$2"); shift 2 ;;
+
+        --names-pipe-stderr | \
+        --names-no-pipe-stderr ) shift ;;
+
+        --names-pos-params-name | \
+        --names-spec-params-name ) shift 2 ;;
+
+        -- ) shift; break ;;
+        * ) printf '[%s] %s\n' "${BASH_SOURCE##*/}" 'Internal error: unable to parse option `'"$1"'`.' >&2; exit 1 ;;
+
+      esac
+    done
+
+    get_opts "${args[@]}"
+
+  }
+
+  opts_no_names_mode=$(eval remove_names_mode_opts "$opts")
+
+  bat_color_override='auto'
+  bat_paging_override='never'
+
+  {
+    [[ $pos_params_declare || $spec_params_declare ]] && printf '%s' '('
+    [[ $pos_params_declare ]] && printf '%s; ' "$pos_params_declare"
+    [[ $spec_params_declare ]] && printf '%s; ' "$spec_params_declare"
+    printf 'declare -p'${vars[@]:+' %s'} "${vars[*]}"
+    [[ $pos_params_declare || $spec_params_declare ]] && printf '%s' ')'
+    printf ' |'${opt_names_pipe_stderr:+'&'}' pretty-declare-print%s' "${opts_no_names_mode% --}"
+    printf '\n'
+  } | bat_or_cat
+
+  exit
+
+fi
+
+if [[ ${#filters_not_found[@]} -gt 0 ]]; then
+  printf \
+    ${opt_color:+'\x1b[31m'}'[%s] %s\n' \
+    "${BASH_SOURCE##*/}" \
+    'The following filters could not be found:'
+  printf \''%s'\''\n' "${filters_not_found[@]//\'/\'\\\'\'}"
+  printf \
+    '%s'${opt_color:+'\x1b[39m'}'\n' \
+    'Use `--filter-list` to view all available filters.' >&2
+  exit 1
+fi
+
+printf '%s\0%s\n%s\n' "$lib_dir" "$(declare -p opt_sort_associative_arrays opt_multiline_arrays_indent opt_multiline_arrays opt_sort_opts | tr '\n' ';')" "$(</dev/stdin)" | sed -nEf "$lib_dir"'/pretty-declare-print.sed' | (
+
+  data=$(</dev/stdin)
+  for sed_script in "${sed_scripts_filters[@]}"; do
+    sed_opts=(-E)
+    if [[ $sed_script = *([[:space:]])[-+]* ]]; then
+      [[ ! $sed_script = *([[:space:]])+* ]] && sed_opts=() || sed_script="${sed_script##*([[:space:]])+*([[:space:]])}"
+      sed_script="${sed_script/#--/ --}" sed_script="${sed_script/%--/-- }"
+      while read -rd '' arg; do
+        [[ $arg ]] && sed_opts+=("$arg")
+      done < <(<<<"${sed_script%%+([[:space:]])--+([[:space:]])*}" xargs printf '%s\0')
+    fi
+    sed_script="${sed_script##*+([[:space:]])--+([[:space:]])}"
+    data=$(<<<"$data" sed "${sed_opts[@]}" "$sed_script")
+  done
+  printf '%s\n' "$data"
+
+) | bat_or_cat

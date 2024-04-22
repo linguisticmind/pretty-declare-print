@@ -1,0 +1,251 @@
+.TH PRETTY-DECLARE-PRINT 1 2024 PRETTY-DECLARE-PRINT\ 0.1.0
+
+.SH NAME
+pretty-declare-print - prettify output of `declare -p`
+
+.SH SYNOPSIS
+.SY
+declare -p [<name> ...] |[&] \fBpretty-declare-print\fR [<options>]
+
+\fBpretty-declare-print\fR [<options>] <name> ...
+.YS
+
+.SH DESCRIPTION
+\fBpretty-declare-print\fR allows the user to easily view contents of Bash variables by formatting the output of Bash's `declare` builtin when run with the `-p` option. It can also be used to view values of special and positional paramaters, which can't normally be displayed with `declare -p`, by creating temporary arrays to hold the values of those parameters.
+
+For more information on parameters in Bash, see <https://www.gnu.org/software/bash/manual/bash.html#Shell-Parameters>.
+
+Run `help declare` for more information on the `declare` builtin.
+
+\fBpretty-declare-print\fR requires \fBbat\fR to be installed to enable syntax highlighting in the output. If \fBbat\fR is not installed, syntax highlighting will not be available.
+
+.SH MODES
+
+\fBpretty-declare-print\fR has two modes of operation: the default mode and the names mode. These modes correspond to the two syntax forms that can be seen in the SYNOPSIS above.
+
+.SS Default mode
+
+In the default mode, \fBpretty-declare-print\fR takes output of `declare -p` via stdin and formats it according to the <options> set:
+
+.SY
+declare -p [<name> ...] |[&] \fBpretty-declare-print\fR [<options>]
+.YS
+
+One may choose to use the control operator `|%` instead of the regular pipe (`|`) to direct both stdout and stderr of \fBdeclare\fR to stdin of \fBpretty-declare-print\fR. This will allow the `unset_from_error` filter to be used. See \fB-f, --filter\fR for more information. The names mode option \fB--names-pipe-stderr\fR / \fB--names-no-pipe-stderr\fR is also related.
+
+For more information on Bash pipelines, see <https://www.gnu.org/software/bash/manual/bash.html#Pipelines>.
+
+.SS Names mode
+
+Names mode is activated when at least one positional parameter <name> is passed to \fBpretty-declare-print\fR:
+
+.SY
+\fBpretty-declare-print\fR [<options>] <name> ...
+.YS
+
+In this mode, \fBpretty-declare-print\fR generates code corresponding to the form of the default mode.
+
+<name> here technically should be <name|pos_param|spec_param|@|%|+>, but is simplified to '<name>' for the sake of brevity.
+
+These different possibilities of what '<name>' can be mean the following:
+
+.TP 4
+<name>
+A valid Bash variable name. Variable names can only consist of letters (a-z, A-Z), numbers (0-9), and underscores (_), and the first character cannot be a number.
+
+.TP
+<pos_param>
+A positional parameter. Positional parameters are always positive integers (1, 2, 3, ...).
+
+\fBpretty-declare-print\fR creates code for generating a temporary indexed array variable (whose name is set by \fB--names-pos-params-name\fR) to hold the values of positional parameters. This variable is put in a subshell, so it will not appear in the enviroment after running the generated code.
+
+Positional parameter 1 is assigned to index 1, positional parameter 2 to index 2 etc. Index 0 is not used.
+
+For more information on positional parameters in Bash, see <https://www.gnu.org/software/bash/manual/bash.html#Positional-Parameters>.
+
+.TP
+<spec_param>
+A special parameter. Possible values are `*`, `#`, `?`, `-`, `$`, `!`, `0`.
+
+Special parameter `@` can also be passed, but is treated differently. See below.
+
+\fBpretty-declare-print\fR creates code for generating a temporary associative array variable (whose name is set by \fB--names-spec-params-name\fR) to hold the values of special parameters. This variable is put in a subshell, so it will not appear in the enviroment after running the generated code.
+
+For more information on special parameters in Bash, see <https://www.gnu.org/software/bash/manual/bash.html#Special-Parameters>.
+
+.TP
+@
+Tells \fBpretty-declare-print\fR to display all positional parameters. When `@` is passed, integer values (<pos_param>s) are ignored, and all positional parameters are added to the temporary indexed array variable.
+
+.TP
+%
+Tells \fBpretty-declare-print\fR to display all special parameters. When `%` is passed, <spec_param>s are ignored, and all special parameters are added to the temporary associative array variable.
+
+.TP
++
+Tells \fBpretty-declare-print\fR to display all variables in the environment.
+
+This generates `declare -p |[&] pretty-declare-print [<options>]`, i.e. no names are passed to \fBdeclare\fR.
+
+When this value is passed, all other positional parameters ('<name>'s) passed to \fBpretty-declare-print\fR are ignored.
+
+.SH OPTIONS
+
+.SS Colons syntax (replace/append)
+
+Some of the options described below use a special syntax which determines whether the previously set values of this option should be replaced or appended to.
+
+The syntax looks like this:
+
+.EX
+\fB-o, --option\fR=[:[:]]<value>
+.EE
+
+It means that <value> can be preceded by a single colon, a double colon, or nothing.
+
+There may also be some structure to the <value> that makes it possible to pass several pieces of information at once. For example, it may be a comma-separated list (<value>[,...]) or an option string (<opts>).
+
+The indication '<value>' will be used going forward to refer to this, but keep in mind that this '<value>' can really consist of multiple values.
+
+The leading colons control whether <value> gets appended to previously set values, or replaces them.
+
+The phrase 'previously set values' refers to either the default value baked into the script itself, or a value set in the configuration file.
+
+When a single colon (`:`) is used, <value> replaces the previously set values.
+
+When a double colon (`::`) is used, <value> is appended to the previously set values.
+
+When the leading colons are omitted, whether <value> replaces the previously set values, or is appended to them is determined by an *additonal* value that is yet again either baked into the script itself, or is set in the configuration file.
+
+The variable that controls this can be recognized as having the same name as the option in question with the word `_append` added to it. For example, if the option's variable is `opt_option`, then the variable that controls what happens when the leading colons are omitted is called `opt_option_append`.
+
+.SS General
+.TP
+.B -s, --sort-associative-arrays
+Present contents of associative arrays in a sorted order. This is the default.
+
+.TP
+.B -S, --no-sort-associative-arrays
+Do not present contents of associative arrays in a sorted order.
+
+.TP
+.B -m, --multiline-arrays
+Display each element of an array on a separate line. This is the default.
+
+.TP
+.B -M, --no-multiline-arrays
+Do not display each element of an array on a separate line. 
+
+.TP
+.B -i, --multiline-arrays-indent\fR=<value>
+Width of indentation when each element of an array is displayed on a separate line. <value> must be a positive integer. The default <value> is `2`.
+
+.TP
+.B -f, --filter\fR=[:[:]]<filter_name>[,...]
+Modify output of \fBpretty-declare-print\fR with one or more filters. The default is ``.
+
+Filters are sed scripts. They are applied in the order that was specified in the comma-separated list of <filter_name>s passed as a value to this option. This option can also be passed multiple times, in which case, the order of the filters is respected as well.
+
+The following filters are available by default:
+
+.RS
+.TP
+omit_values
+Only show the `declare <attrs> <name>` part, omitting the values.
+.TP
+simplify
+Only show the names and the values, omitting the `declare <attrs> ` part \- except for associative arrays.
+.TP
+simplify_all
+Like `simplify`, but also omits `declare <attrs> ` for associative arrays.
+.TP
+unset_from_error
+Convert \fBdeclare\fR's '<name>: not found' error messages to `unset -n <name>; unset "$_"`.
+
+Note that in order for this filter to work, stderr of \fBdeclare\fR must be piped to \fBpretty-declare-print\fR. This can be acheived by using the `|&` control operator, or by setting \fB--names-pipe-stderr\fR when working in names mode.
+.RE
+
+.IP
+Custom filters can be defined in the configuration file by adding values to the `filters` associative array. Pass \fB--filter-list\fR to view that array.
+
+.TP
+.B --filter-list
+Print the list of available filters.
+
+.TP
+.B -e, --filter-commands\fR=[[+]<sed_opts> -- ]<sed_script>
+Like \fB-f, --filter\fR, but takes a sed script as the value instead of a filter name.
+
+Options to sed can also be passed if needed. If <sed_opts> are preceded with a plus sign (`+`), then they are appended to the default sed options. The default sed options are `-E`. If the plus sign is not added, then <sed_opts> replace the default sed options.
+
+This option can be passed multiple times with the order of scripts being respected. These 'on-the-fly' filters are added to the chain of filters passed with \fB-f, --filter\fR while respecting the order of scripts that came from either option.
+
+.TP
+.B --bat-opts\fR=[:[:]]<opts>
+Options to \fBbat\fR. The default is ``.
+
+.TP
+.B --sort-opts\fR=[:[:]]<opts>
+Options to \fBsort\fR. The default is ``.
+
+.SS Names mode
+
+.TP
+.B --names-pos-params-name=<value>
+Name of a temporary variable to hold values of positional parameters. The default it `_pos_params`.
+
+.TP
+.B --names-spec-params-name=<value>
+Name of a temporary variable to hold values of special parameters. The default it `_spec_params`.
+
+.TP
+.B --names-pipe-stderr
+Pipe stderr of \fBdeclare\fR to \fBpretty-declare-print\fR together with its stdout.
+
+.TP
+.B --names-no-pipe-stderr
+Do not pipe stderr of \fBdeclare\fR to \fBpretty-declare-print\fR together with its stdout. This is the default.
+
+.SS Other
+
+.TP
+.B -c, --color
+Colorize the output. This is the default.
+
+.TP
+.B -C, --no-color
+Disable colorization of the output.
+
+.TP
+.B -h, --help
+Print help.
+
+.TP
+.B -V, --version
+Print version information.
+
+.SH ENVIRONMENT
+
+\fBpretty-declare-print\fR is a program that consists of multiple files. All the files that \fBpretty-declare-print\fR requires are stored in the \fIlib\fR directory located in the same folder as the main script.
+
+Normally, \fBpretty-declare-print\fR should be able to determine its own locatiion, and thus the location of the \fIlib\fR folder. If for whatever reason \fBpretty-declare-print\fR is unable to determine its own location, or the user wishes to store \fBpretty-declare-print\fR library files elsewhere, the \fIPRETTY_DECLARE_PRINT_LIB_DIR\fR enviroment variable can be set to manually point to a directory containing \fBpretty-declare-print\fR library files.
+
+.SH FILES
+
+A configuration file can be used to set default options.
+
+The configuration file's location is \fI$XDG_CONFIG_HOME/pretty-declare-print/config.bash\fR. If \fIXDG_CONFIG_HOME\fR is not set, it defaults to \fI~/.config\fR.
+
+.SH AUTHOR
+
+Alex Rogers <https://github.com/linguisticmind>
+
+.SH HOMEPAGE
+
+<https://github.com/linguisticmind/ezedl>
+
+.SH COPYRIGHT
+
+Copyright © 2023 Alex Rogers. License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+
+This is free software: you are free to change and redistribute it. There is NO WARRANTY, to the extent permitted by law.
