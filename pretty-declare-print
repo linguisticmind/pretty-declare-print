@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-version=0.1.0
+version=0.1.1
 
 getopt -T > /dev/null
 [[ $? != 4 ]] && { printf '[%s] %s\n' "${BASH_SOURCE##*/}" 'Enhanced getopt is required to run this script.' >&2; exit 1; }
@@ -68,6 +68,22 @@ pretty-declare-print [<options>] <name> ...
         Name of a temporary variable to hold values of 
         special parameters.
 
+--names-var-underscore-name=<value>
+        Name of a temporary variable to hold value of the 
+        underscore variable.
+
+--names-var-pipestatus-name=<value>
+        Name of a temporary variable to hold value of the 
+        underscore variable.
+
+--names-spec-param-question-mark-name=<value>
+        Name of a temporary variable to hold value of the 
+        underscore variable.
+
+-x, --names-preserve-exit-status=<value>
+        Exit status of the previous command - for using 
+        pretty-declare-print in names mode with eval.
+
 --names-pipe-stderr
         Pipe stderr of declare to pretty-declare-print 
         together with its stdout.
@@ -89,7 +105,7 @@ pretty-declare-print [<options>] <name> ...
         Print version information.
 '
 
-function get_opts { getopt -n "${BASH_SOURCE##*/}" -o 's,S,i:,m,M,f:,e:,c,C,h,V,' -l 'sort-associative-arrays,no-sort-associative-arrays,multiline-arrays,no-multiline-arrays,multiline-arrays-indent:,filter:,filter-list,filter-commands:,bat-opts:,sort-opts:,names-pos-params-name:,names-spec-params-name:,names-pipe-stderr,names-no-pipe-stderr,color,no-color,help,version,' -- "$@"; }
+function get_opts { getopt -n "${BASH_SOURCE##*/}" -o 's,S,i:,m,M,f:,e:,x:,c,C,h,V,' -l 'sort-associative-arrays,no-sort-associative-arrays,multiline-arrays,no-multiline-arrays,multiline-arrays-indent:,filter:,filter-list,filter-commands:,bat-opts:,sort-opts:,names-pos-params-name:,names-spec-params-name:,names-var-underscore-name:,names-var-pipestatus-name:,names-spec-param-question-mark-name:,names-preserve-exit-status:,names-pipe-stderr,names-no-pipe-stderr,color,no-color,help,version,' -- "$@"; }
 
 opts=$(get_opts "$@")
 
@@ -118,6 +134,10 @@ opt_sort_opts=()
 opt_sort_opts_append=1
 opt_names_pos_params_name='_pos_params'
 opt_names_spec_params_name='_spec_params'
+opt_names_var_underscore_name='_var_underscore'
+opt_names_var_pipestatus_name='_var_pipestatus'
+opt_names_spec_param_question_mark_name='_spec_param_question_mark'
+opt_names_preserve_exit_status=
 opt_names_pipe_stderr=
 opt_color=1
 
@@ -213,6 +233,10 @@ while true; do
     ;;
     --names-pos-params-name ) opt_names_pos_params_name="$2"; shift 2 ;;
     --names-spec-params-name ) opt_names_spec_params_name="$2"; shift 2 ;;
+    --names-var-underscore-name ) opt_names_var_underscore_name="$2"; shift 2 ;;
+    --names-var-pipestatus-name ) opt_names_var_pipestatus_name="$2"; shift 2 ;;
+    --names-spec-param-question-mark-name ) opt_names_spec_param_question_mark_name="$2"; shift 2 ;;
+    -x | --names-preserve-exit-status ) opt_names_preserve_exit_status="$2"; shift 2 ;;
     --names-pipe-stderr ) opt_names_pipe_stderr=1; shift ;;
     --names-no-pipe-stderr ) opt_names_pipe_stderr=; shift ;;
     -c | --color ) opt_color=1; shift ;;
@@ -253,6 +277,19 @@ function validate_opt_arg_var_name {
 
 validate_opt_arg_var_name '--names-pos-params-name' "$opt_names_pos_params_name"
 validate_opt_arg_var_name '--names-spec-params-name' "$opt_names_spec_params_name"
+validate_opt_arg_var_name '--names-var-underscore-name' "$opt_names_var_underscore_name"
+validate_opt_arg_var_name '--names-var-pipestatus-name' "$opt_names_var_pipestatus_name"
+validate_opt_arg_var_name '--names-spec-param-question-mark-name' "$opt_names_spec_param_question_mark_name"
+
+if [[ $opt_names_preserve_exit_status != @(|?(?(1)[0-9])[0-9]|2@([0-4][0-9]|5[0-5])) ]]; then
+  messages+=("$(
+    printf \
+      ${opt_color:+'\x1b[31m'}'[%s] %s'${opt_color:+'\x1b[39m'}'\n' \
+      "${BASH_SOURCE##*/}" \
+      'Invalid argument to `-x, --names-preserve-exit-status`: '\'"${opt_names_preserve_exit_status//\'/\'\\\'\'}"\''. Only integer values from 0 to 255 are allowed.'
+  )")
+  had_errors=1
+fi
 
 [[ ${#messages[@]} -gt 0 ]] && printf '%s\n' "${messages[@]}" >&2
 if [[ $had_errors ]]; then
@@ -262,6 +299,10 @@ fi
 source "$lib_dir"'/bat_or_cat.bash'
 
 if [[ $# -gt 0 ]]; then
+
+  var_underscore=
+  var_pipestatus=
+  spec_param_question_mark=
 
   vars=()
 
@@ -278,6 +319,7 @@ if [[ $# -gt 0 ]]; then
   for name; do
     case $name in
       +([[:digit:]]) ) [[ ! $pos_params_declare_middle_all ]] && pos_params_declare_middle+=$(printf '[%s]="$%s" ' "$name" "$name") ;;
+      ? ) spec_param_question_mark=1 ;;&
       +([-*#?$!0]) ) [[ ! $spec_params_declare_middle_all ]] && spec_params_declare_middle+=$(printf '[%s]="$%s" ' "$(<<<"$name" sed -E 's/[#?!]/"&"/; s/\$/\\&/')" "$name") ;;
       @ ) pos_params_declare_middle_all='for ((i=1; i<="$#"; i++)); do '"$opt_names_pos_params_name"'[$i]="${!i}"; done' pos_params_declare_middle= ;;
       % ) spec_params_declare_middle_all='[*]="$*" [#]="$#" [?]="$?" [-]="$-" [$]="$$" [!]="$!" [0]="$0" ' pos_params_declare_middle= ;;
@@ -300,6 +342,35 @@ if [[ $# -gt 0 ]]; then
         )")
         had_errors=1
       ;;
+      "$opt_names_var_underscore_name" )
+        messages+=("$(
+          printf \
+            ${opt_color:+'\x1b[31m'}'[%s] %s'${opt_color:+'\x1b[39m'}'\n' \
+            "${BASH_SOURCE##*/}" \
+            'Cannot create a temporary variable for storing the value of the underscore variable (`$_`) because the variable '\'"${name//\'/\'\\\'\'}"\'' was passed as <name>. Use `--names-var-underscore-name` to set a different temporary variable name.'
+        )")
+        had_errors=1
+      ;;
+      "$opt_names_var_pipestatus_name" )
+        messages+=("$(
+          printf \
+            ${opt_color:+'\x1b[31m'}'[%s] %s'${opt_color:+'\x1b[39m'}'\n' \
+            "${BASH_SOURCE##*/}" \
+            'Cannot create a temporary variable for storing the value of the PIPESTATUS variable because the variable '\'"${name//\'/\'\\\'\'}"\'' was passed as <name>. Use `--names-var-pipestatus-name` to set a different temporary variable name.'
+        )")
+        had_errors=1
+      ;;
+      "$opt_names_spec_param_question_mark_name" )
+        messages+=("$(
+          printf \
+            ${opt_color:+'\x1b[31m'}'[%s] %s'${opt_color:+'\x1b[39m'}'\n' \
+            "${BASH_SOURCE##*/}" \
+            'Cannot create a temporary variable for storing the value of the question mark special parameter (`$?`) because the variable '\'"${name//\'/\'\\\'\'}"\'' was passed as <name>. Use `--names-spec-param-question-mark-name` to set a different temporary variable name.'
+        )")
+        had_errors=1
+      ;;
+      _ ) var_underscore=1 name="$opt_names_var_underscore_name" ;;&
+      PIPESTATUS ) var_pipestatus=1 name="$opt_names_var_pipestatus_name" ;;&
       [[:alpha:]_]*([[:alnum:]_]) ) vars+=("$name") ;;
       * )
         messages+=("$(
@@ -318,6 +389,11 @@ if [[ $# -gt 0 ]]; then
     exit 1
   fi
 
+  subshell=
+  capture=
+  capture_other_than_spec_param_question_mark=
+  capture_spec_param_question_mark=
+
   pos_params_declare=
   spec_params_declare=
 
@@ -328,6 +404,14 @@ if [[ $# -gt 0 ]]; then
 
   [[ $spec_params_declare ]] && vars=("$opt_names_spec_params_name" "${vars[@]}")
   [[ $pos_params_declare ]] && vars=("$opt_names_pos_params_name" "${vars[@]}")
+
+  [[ $var_underscore || $var_pipestatus || $spec_param_question_mark ]] && capture=1
+  [[ $var_underscore || $var_pipestatus ]] && capture_other_than_spec_param_question_mark=1
+  [[ $spec_params_declare && ($capture_other_than_spec_param_question_mark || $pos_params_declare) ]] && capture_spec_param_question_mark=1
+
+  [[ $capture || $pos_params_declare || $spec_params_declare ]] && subshell=1
+
+  [[ $capture_spec_param_question_mark ]] && spec_params_declare=$(<<<"$spec_params_declare" sed -E 's/(\["\?"\]="\$)\?(")/\1_spec_param_question_mark\2/')
 
   function remove_names_mode_opts {
 
@@ -357,7 +441,11 @@ if [[ $# -gt 0 ]]; then
         --names-no-pipe-stderr ) shift ;;
 
         --names-pos-params-name | \
-        --names-spec-params-name ) shift 2 ;;
+        --names-spec-params-name | \
+        --names-var-underscore-name | \
+        --names-var-pipestatus-name | \
+        --names-spec-param-question-mark-name | \
+        -x | --names-preserve-exit-status ) shift 2 ;;
 
         -- ) shift; break ;;
         * ) printf '[%s] %s\n' "${BASH_SOURCE##*/}" 'Internal error: unable to parse option `'"$1"'`.' >&2; exit 1 ;;
@@ -375,16 +463,21 @@ if [[ $# -gt 0 ]]; then
   bat_paging_override='never'
 
   {
-    [[ $pos_params_declare || $spec_params_declare ]] && printf '%s' '('
+    [[ $subshell ]] && printf '%s' '('
+    {
+      [[ $var_underscore ]] && printf '%s="$_" ' "$opt_names_var_underscore_name"
+      [[ $var_pipestatus ]] && printf '%s=("${PIPESTATUS[@]}") ' "$opt_names_var_pipestatus_name"
+      [[ $capture_spec_param_question_mark ]] && printf '%s="$?" ' "$opt_names_spec_param_question_mark_name"
+    } | sed -E 's/ $/; /'
     [[ $pos_params_declare ]] && printf '%s; ' "$pos_params_declare"
     [[ $spec_params_declare ]] && printf '%s; ' "$spec_params_declare"
     printf 'declare -p'${vars[@]:+' %s'} "${vars[*]}"
-    [[ $pos_params_declare || $spec_params_declare ]] && printf '%s' ')'
+    [[ $subshell ]] && printf '%s' ')'
     printf ' |'${opt_names_pipe_stderr:+'&'}' pretty-declare-print%s' "${opts_no_names_mode% --}"
     printf '\n'
   } | bat_or_cat
 
-  exit
+  exit ${opt_names_preserve_exit_status:+"$opt_names_preserve_exit_status"}
 
 fi
 

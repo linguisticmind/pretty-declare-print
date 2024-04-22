@@ -12,6 +12,10 @@
 #opt_sort_opts_append=1
 #opt_names_pos_params_name='_pos_params'
 #opt_names_spec_params_name='_spec_params'
+#opt_names_var_underscore_name='_var_underscore'
+#opt_names_var_pipestatus_name='_var_pipestatus'
+#opt_names_spec_param_question_mark_name='_spec_param_question_mark'
+#opt_names_preserve_exit_status=
 #opt_names_pipe_stderr=
 #opt_color=1
 
