@@ -1,4 +1,4 @@
-.TH PRETTY-DECLARE-PRINT 1 2024 PRETTY-DECLARE-PRINT\ 0.1.1
+.TH PRETTY-DECLARE-PRINT 1 2024 PRETTY-DECLARE-PRINT\ 0.1.2
 
 .SH NAME
 pretty-declare-print - prettify output of `declare -p`
@@ -173,6 +173,11 @@ Only show the names and the values, omitting the `declare <attrs> ` part \- exce
 .TP
 simplify_all
 Like `simplify`, but also omits `declare <attrs> ` for associative arrays.
+.TP
+unset_before_declare
+Add an `unset -n <name>; unset "$_"` line before declaring each variable.
+
+If one were to source the output of \fBpretty-declare-print\fR, each variable should be unset first, before declaring it. Not doing so may result in erroneous assignments if, for instance, one of the variables was previously declared as a name reference, or an array.
 .TP
 unset_from_error
 Convert \fBdeclare\fR's '<name>: not found' error messages to `unset -n <name>; unset "$_"`.

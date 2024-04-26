@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-version=0.1.1
+version=0.1.2
 
 getopt -T > /dev/null
 [[ $? != 4 ]] && { printf '[%s] %s\n' "${BASH_SOURCE##*/}" 'Enhanced getopt is required to run this script.' >&2; exit 1; }
@@ -117,7 +117,8 @@ declare -A filters=(
   [omit_values]='s/=.*//; /^\s*\[|^\)$/ d'
   [simplify]='s/^declare -[-a] //'
   [simplify_all]='s/^declare -[^ ] //'
-  [unset_from_error]='s/^[^:]*: declare: ([[:alpha:]_][[:alnum:]_]*): not found/unset -n \1; unset "$_"/'
+  [unset_before_declare]='s/^declare -[^ ] ([[:alpha:]_][[:alnum:]_]*)/unset -n \1; unset "$_"\n&/'
+  [unset_from_error]='s/^([^:]*:)+ declare: ([[:alpha:]_][[:alnum:]_]*): not found/unset -n \2; unset "$_"/'
 )
 
 opt_sort_associative_arrays=1
@@ -319,7 +320,7 @@ if [[ $# -gt 0 ]]; then
   for name; do
     case $name in
       +([[:digit:]]) ) [[ ! $pos_params_declare_middle_all ]] && pos_params_declare_middle+=$(printf '[%s]="$%s" ' "$name" "$name") ;;
-      ? ) spec_param_question_mark=1 ;;&
+      '?' ) spec_param_question_mark=1 ;;&
       +([-*#?$!0]) ) [[ ! $spec_params_declare_middle_all ]] && spec_params_declare_middle+=$(printf '[%s]="$%s" ' "$(<<<"$name" sed -E 's/[#?!]/"&"/; s/\$/\\&/')" "$name") ;;
       @ ) pos_params_declare_middle_all='for ((i=1; i<="$#"; i++)); do '"$opt_names_pos_params_name"'[$i]="${!i}"; done' pos_params_declare_middle= ;;
       % ) spec_params_declare_middle_all='[*]="$*" [#]="$#" [?]="$?" [-]="$-" [$]="$$" [!]="$!" [0]="$0" ' pos_params_declare_middle= ;;

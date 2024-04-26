@@ -6,6 +6,10 @@ For more information on parameters in Bash, see https://www.gnu.org/software/bas
 
 Run `help declare` for more information on the `declare` builtin.
 
+Video tutorial:
+
+[![Mindful Technology - [Bash scripting #6] declare -p + pretty-declare-print: a better way to view values of Bash variables](https://img.youtube.com/vi/lO6avzX2QBg/0.jpg)](https://www.youtube.com/watch?v=lO6avzX2QBg)
+
 ## Changelog
 
 <table>
@@ -16,13 +20,19 @@ Run `help declare` for more information on the `declare` builtin.
     </tr>
     <tr>
         <td>
-            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.1">0.1.1</a></td>
+            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.2">0.1.2</a></td>
         <td>
-            2024-04-22
+            2024-04-27
         </td>
         <td>
             <p>
-                Now, <code>$&lowbar;</code>, <code>PIPESTATUS</code>, and <code>$?</code> are preserved in names mode.
+                Added a new <code>unset_before_declare</code> filter. If one were to source the output of <code>pretty-declare-print</code>, each variable should be unset first, before declaring it. Not doing so may result in erroneous assignments if, for instance, one of the variables was previously declared as a name reference, or an array.
+            </p>
+            <p>
+                Fixed a bug in the <code>unset_from_error</code> filter that occurred when the <code>declare: &lt;name&gt;: not found</code> part of an error line would be preceded by more than one colon-terminated substring, e.g. <code>./test-script: line 11: declare: nonexistent: not found</code>.
+            </p>
+            <p>
+                Fixed a bug where passing single-letter <code>&lt;name&gt;</code>s in names mode would result in the <code>declare -p</code> command being unnecessarily put in a subshell.
             </p>
         </td>
     </tr>
@@ -345,16 +355,26 @@ OPTIONS
                      Like `simplify`, but also omits `declare  <attrs>  `  for
                      associative arrays.
 
+              unset_before_declare
+                     Add  an `unset -n <name>; unset "$_"` line before declar‐
+                     ing each variable.
+
+                     If one were to source the output of pretty-declare-print,
+                     each variable should be unset first, before declaring it.
+                     Not doing so may result in erroneous assignments if,  for
+                     instance, one of the variables was previously declared as
+                     a name reference, or an array.
+
               unset_from_error
-                     Convert  declare's  '<name>: not found' error messages to
+                     Convert declare's '<name>: not found' error  messages  to
                      `unset -n <name>; unset "$_"`.
 
                      Note that in order for this filter to work, stderr of de‐
-                     clare  must be piped to pretty-declare-print. This can be
-                     acheived by using the `|&` control operator, or  by  set‐
+                     clare must be piped to pretty-declare-print. This can  be
+                     acheived  by  using the `|&` control operator, or by set‐
                      ting --names-pipe-stderr when working in names mode.
 
-              Custom  filters  can  be  defined  in  the configuration file by
+              Custom filters can be  defined  in  the  configuration  file  by
               adding values to the `filters` associative array. Pass --filter-
               list to view that array.
 
@@ -362,18 +382,18 @@ OPTIONS
               Print the list of available filters.
 
        -e, --filter-commands=[[+]<sed_opts> -- ]<sed_script>
-              Like  -f,  --filter, but takes a sed script as the value instead
+              Like -f, --filter, but takes a sed script as the  value  instead
               of a filter name.
 
-              Options to sed can also be passed if needed. If  <sed_opts>  are
-              preceded  with  a plus sign (`+`), then they are appended to the
-              default sed options. The default sed options are  `-E`.  If  the
-              plus  sign is not added, then <sed_opts> replace the default sed
+              Options  to  sed can also be passed if needed. If <sed_opts> are
+              preceded with a plus sign (`+`), then they are appended  to  the
+              default  sed  options.  The default sed options are `-E`. If the
+              plus sign is not added, then <sed_opts> replace the default  sed
               options.
 
-              This option can be passed  multiple  times  with  the  order  of
+              This  option  can  be  passed  multiple  times with the order of
               scripts being respected. These 'on-the-fly' filters are added to
-              the chain of filters passed with -f, --filter  while  respecting
+              the  chain  of filters passed with -f, --filter while respecting
               the order of scripts that came from either option.
 
        --bat-opts=[:[:]]<opts>
@@ -388,29 +408,29 @@ OPTIONS
               eters. The default it `_pos_params`.
 
        --names-spec-params-name=<value>
-              Name of a temporary variable to hold values of  special  parame‐
+              Name  of  a temporary variable to hold values of special parame‐
               ters. The default it `_spec_params`.
 
        --names-var-underscore-name=<value>
-              Name  of  a  temporary  variable to hold value of the underscore
+              Name of a temporary variable to hold  value  of  the  underscore
               variable. The default it `_var_underscore`.
 
        --names-var-pipestatus-name=<value>
-              Name of a temporary variable to hold  value  of  the  underscore
+              Name  of  a  temporary  variable to hold value of the underscore
               variable. The default it `_var_pipestatus`.
 
        --names-spec-param-question-mark-name=<value>
-              Name  of  a  temporary  variable to hold value of the underscore
+              Name of a temporary variable to hold  value  of  the  underscore
               variable. The default it `_spec_param_question_mark`.
 
        -x, --names-preserve-exit-status=<value>
-              Exit status of the previous command - for using  pretty-declare-
+              Exit  status of the previous command - for using pretty-declare-
               print in names mode with eval. Usage: `-x "$?"`.
 
-              When  set,  it  will cause pretty-declare-print to exit with the
+              When set, it will cause pretty-declare-print to  exit  with  the
               specified exit status.
 
-              See MODES > 'Using the generated code with (and  without)  eval'
+              See  MODES  > 'Using the generated code with (and without) eval'
               for more information.
 
        --names-pipe-stderr
@@ -418,7 +438,7 @@ OPTIONS
               stdout.
 
        --names-no-pipe-stderr
-              Do not pipe stderr of declare to  pretty-declare-print  together
+              Do  not  pipe stderr of declare to pretty-declare-print together
               with its stdout. This is the default.
 
    Other
@@ -435,23 +455,23 @@ OPTIONS
               Print version information.
 
 ENVIRONMENT
-       pretty-declare-print  is a program that consists of multiple files. All
-       the files that pretty-declare-print requires are stored in the lib  di‐
+       pretty-declare-print is a program that consists of multiple files.  All
+       the  files that pretty-declare-print requires are stored in the lib di‐
        rectory located in the same folder as the main script.
 
-       Normally,  pretty-declare-print should be able to determine its own lo‐
-       catiion, and thus the location of the lib folder. If for whatever  rea‐
-       son  pretty-declare-print  is  unable to determine its own location, or
-       the user wishes to store pretty-declare-print library files  elsewhere,
+       Normally, pretty-declare-print should be able to determine its own  lo‐
+       catiion,  and thus the location of the lib folder. If for whatever rea‐
+       son pretty-declare-print is unable to determine its  own  location,  or
+       the  user wishes to store pretty-declare-print library files elsewhere,
        the PRETTY_DECLARE_PRINT_LIB_DIR enviroment variable can be set to man‐
-       ually point to  a  directory  containing  pretty-declare-print  library
+       ually  point  to  a  directory  containing pretty-declare-print library
        files.
 
 FILES
        A configuration file can be used to set default options.
 
-       The  configuration  file's location is $XDG_CONFIG_HOME/pretty-declare-
-       print/config.bash. If  XDG_CONFIG_HOME  is  not  set,  it  defaults  to
+       The configuration file's location  is  $XDG_CONFIG_HOME/pretty-declare-
+       print/config.bash.  If  XDG_CONFIG_HOME  is  not  set,  it  defaults to
        ~/.config.
 
 AUTHOR
@@ -461,13 +481,13 @@ HOMEPAGE
        <https://github.com/linguisticmind/ezedl>
 
 COPYRIGHT
-       Copyright  ©  2023  Alex  Rogers.  License GPLv3+: GNU GPL version 3 or
+       Copyright © 2023 Alex Rogers. License GPLv3+:  GNU  GPL  version  3  or
        later <https://gnu.org/licenses/gpl.html>.
 
-       This is free software: you are free  to  change  and  redistribute  it.
+       This  is  free  software:  you  are free to change and redistribute it.
        There is NO WARRANTY, to the extent permitted by law.
 
-PRETTY-DECLARE-PRINT 0.1.1           2024              PRETTY-DECLARE-PRINT(1)
+PRETTY-DECLARE-PRINT 0.1.2           2024              PRETTY-DECLARE-PRINT(1)
 ```
 
 ## License

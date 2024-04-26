@@ -8,6 +8,24 @@
     </tr>
     <tr>
         <td>
+            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.2">0.1.2</a></td>
+        <td>
+            2024-04-27
+        </td>
+        <td>
+            <p>
+                Added a new <code>unset_before_declare</code> filter. If one were to source the output of <code>pretty-declare-print</code>, each variable should be unset first, before declaring it. Not doing so may result in erroneous assignments if, for instance, one of the variables was previously declared as a name reference, or an array.
+            </p>
+            <p>
+                Fixed a bug in the <code>unset_from_error</code> filter that occurred when the <code>declare: &lt;name&gt;: not found</code> part of an error line would be preceded by more than one colon-terminated substring, e.g. <code>./test-script: line 11: declare: nonexistent: not found</code>.
+            </p>
+            <p>
+                Fixed a bug where passing single-letter <code>&lt;name&gt;</code>s in names mode would result in the <code>declare -p</code> command being unnecessarily put in a subshell.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
             <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.1">0.1.1</a></td>
         <td>
             2024-04-22
