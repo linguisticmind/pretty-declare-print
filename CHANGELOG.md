@@ -10,7 +10,7 @@
         <td>
             <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.2">0.1.2</a></td>
         <td>
-            2024-04-27
+            2024-04-26
         </td>
         <td>
             <p>
