@@ -8,6 +8,21 @@
     </tr>
     <tr>
         <td>
+            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.3">0.1.3</a></td>
+        <td>
+            2024-04-29
+        </td>
+        <td>
+            <p>
+                Fixed the description of <code>simplify</code> and <code>simplify_all</code> filters in the man page.
+            </p>
+            <p>
+                Other minor improvements to the man page.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
             <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.2">0.1.2</a></td>
         <td>
             2024-04-26

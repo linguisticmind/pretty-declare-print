@@ -20,19 +20,16 @@ Video tutorial:
     </tr>
     <tr>
         <td>
-            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.2">0.1.2</a></td>
+            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.3">0.1.3</a></td>
         <td>
-            2024-04-26
+            2024-04-29
         </td>
         <td>
             <p>
-                Added a new <code>unset_before_declare</code> filter. If one were to source the output of <code>pretty-declare-print</code>, each variable should be unset first, before declaring it. Not doing so may result in erroneous assignments if, for instance, one of the variables was previously declared as a name reference, or an array.
+                Fixed the description of <code>simplify</code> and <code>simplify_all</code> filters in the man page.
             </p>
             <p>
-                Fixed a bug in the <code>unset_from_error</code> filter that occurred when the <code>declare: &lt;name&gt;: not found</code> part of an error line would be preceded by more than one colon-terminated substring, e.g. <code>./test-script: line 11: declare: nonexistent: not found</code>.
-            </p>
-            <p>
-                Fixed a bug where passing single-letter <code>&lt;name&gt;</code>s in names mode would result in the <code>declare -p</code> command being unnecessarily put in a subshell.
+                Other minor improvements to the man page.
             </p>
         </td>
     </tr>
@@ -349,11 +346,11 @@ OPTIONS
 
               simplify
                      Only show the names and the values, omitting the `declare
-                     <attrs> ` part - except for associative arrays.
+                     <attrs> ` part wnen <attrs> is `--` or `-a`.
 
               simplify_all
-                     Like `simplify`, but also omits `declare  <attrs>  `  for
-                     associative arrays.
+                     Like `simplify`, but omits  `declare  <attrs>  `  in  all
+                     cases.
 
               unset_before_declare
                      Add  an `unset -n <name>; unset "$_"` line before declar‐
@@ -487,7 +484,7 @@ COPYRIGHT
        This  is  free  software:  you  are free to change and redistribute it.
        There is NO WARRANTY, to the extent permitted by law.
 
-PRETTY-DECLARE-PRINT 0.1.2           2024              PRETTY-DECLARE-PRINT(1)
+PRETTY-DECLARE-PRINT 0.1.3           2024              PRETTY-DECLARE-PRINT(1)
 ```
 
 ## License
