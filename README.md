@@ -20,16 +20,13 @@ Video tutorial:
     </tr>
     <tr>
         <td>
-            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.3">0.1.3</a></td>
+            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.4">0.1.4</a></td>
         <td>
-            2024-04-29
+            2024-05-02
         </td>
         <td>
             <p>
-                Fixed the description of <code>simplify</code> and <code>simplify_all</code> filters in the man page.
-            </p>
-            <p>
-                Other minor improvements to the man page.
+                Updated <code>simplify_all</code> and <code>unset_before_declare</code> filters to work when there are multiple attributes.
             </p>
         </td>
     </tr>
@@ -484,7 +481,7 @@ COPYRIGHT
        This  is  free  software:  you  are free to change and redistribute it.
        There is NO WARRANTY, to the extent permitted by law.
 
-PRETTY-DECLARE-PRINT 0.1.3           2024              PRETTY-DECLARE-PRINT(1)
+PRETTY-DECLARE-PRINT 0.1.4           2024              PRETTY-DECLARE-PRINT(1)
 ```
 
 ## License

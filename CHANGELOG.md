@@ -8,6 +8,18 @@
     </tr>
     <tr>
         <td>
+            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.4">0.1.4</a></td>
+        <td>
+            2024-05-02
+        </td>
+        <td>
+            <p>
+                Updated <code>simplify_all</code> and <code>unset_before_declare</code> filters to work when there are multiple attributes.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
             <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.3">0.1.3</a></td>
         <td>
             2024-04-29
