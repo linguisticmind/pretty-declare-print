@@ -33,5 +33,5 @@ else
     'declare -a'* ) closing_parenthesis=')' ;;
     'declare -A'* ) closing_parenthesis=' )' ;;
   esac
-  sed -E ':a; N; $ ! b a; s/\n/ /g; s/$/'"$closing_parenthesis"'/'
+  sed -E '$ ! { :a; N; $ ! b a }; s/\n/ /g; s/$/'"$closing_parenthesis"'/'
 fi

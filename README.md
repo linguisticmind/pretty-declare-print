@@ -20,13 +20,21 @@ Video tutorial:
     </tr>
     <tr>
         <td>
-            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.4">0.1.4</a></td>
+            <a href='https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.5'>0.1.5</a>
+        </td>
         <td>
-            2024-05-02
+            2024-06-01
         </td>
         <td>
             <p>
-                Updated <code>simplify_all</code> and <code>unset_before_declare</code> filters to work when there are multiple attributes.
+                <b>IMPORTANT</b>: Fixed a bug where the closing parenthesis of an array consisting of a single element wouldn't get printed when breaking up arrays into multiple lines was disabled (<code>-M, --no-multiline-arrays</code>).
+            </p>
+            <p>
+                Now, <code>-c, --color / -C, --no-color</code> also affects colorization of the output in names mode.<br>
+                <code>bat</code>'s <code>--paging</code> is now always set to <code>never</code> in names mode.
+            </p>
+            <p>
+                Fixed formatting in the CHANGELOG file.
             </p>
         </td>
     </tr>
@@ -481,7 +489,7 @@ COPYRIGHT
        This  is  free  software:  you  are free to change and redistribute it.
        There is NO WARRANTY, to the extent permitted by law.
 
-PRETTY-DECLARE-PRINT 0.1.4           2024              PRETTY-DECLARE-PRINT(1)
+PRETTY-DECLARE-PRINT 0.1.5           2024              PRETTY-DECLARE-PRINT(1)
 ```
 
 ## License

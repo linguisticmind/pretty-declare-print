@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-version=0.1.4
+version=0.1.5
 
 getopt -T > /dev/null
 [[ $? != 4 ]] && { printf '[%s] %s\n' "${BASH_SOURCE##*/}" 'Enhanced getopt is required to run this script.' >&2; exit 1; }
@@ -460,7 +460,8 @@ if [[ $# -gt 0 ]]; then
 
   opts_no_names_mode=$(eval remove_names_mode_opts "$opts")
 
-  bat_color_override='auto'
+  bat_color_override=
+  [[ $opt_color ]] && bat_color_override='auto' || bat_color_override='never'
   bat_paging_override='never'
 
   {

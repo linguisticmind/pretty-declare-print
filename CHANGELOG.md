@@ -8,7 +8,28 @@
     </tr>
     <tr>
         <td>
-            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.4">0.1.4</a></td>
+            <a href='https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.5'>0.1.5</a>
+        </td>
+        <td>
+            2024-06-01
+        </td>
+        <td>
+            <p>
+                <b>IMPORTANT</b>: Fixed a bug where the closing parenthesis of an array consisting of a single element wouldn't get printed when breaking up arrays into multiple lines was disabled (<code>-M, --no-multiline-arrays</code>).
+            </p>
+            <p>
+                Now, <code>-c, --color / -C, --no-color</code> also affects colorization of the output in names mode.<br>
+                <code>bat</code>'s <code>--paging</code> is now always set to <code>never</code> in names mode.
+            </p>
+            <p>
+                Fixed formatting in the CHANGELOG file.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <a href='https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.4'>0.1.4</a>
+        </td>
         <td>
             2024-05-02
         </td>
@@ -20,7 +41,8 @@
     </tr>
     <tr>
         <td>
-            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.3">0.1.3</a></td>
+            <a href='https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.3'>0.1.3</a>
+        </td>
         <td>
             2024-04-29
         </td>
@@ -35,7 +57,8 @@
     </tr>
     <tr>
         <td>
-            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.2">0.1.2</a></td>
+            <a href='https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.2'>0.1.2</a>
+        </td>
         <td>
             2024-04-26
         </td>
@@ -53,7 +76,8 @@
     </tr>
     <tr>
         <td>
-            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.1">0.1.1</a></td>
+            <a href='https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.1'>0.1.1</a>
+        </td>
         <td>
             2024-04-22
         </td>
@@ -65,7 +89,8 @@
     </tr>
     <tr>
         <td>
-            <a href="https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.0">0.1.0</a></td>
+            <a href='https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.0'>0.1.0</a>
+        </td>
         <td>
             2024-04-18
         </td>
