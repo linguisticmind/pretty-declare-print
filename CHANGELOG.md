@@ -8,6 +8,17 @@
     </tr>
     <tr>
         <td>
+            <a href='https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.6'>0.1.6</a>
+        </td>
+        <td>
+            2024-06-20
+        </td>
+        <td>
+            Fixed incorrect handling of options to <code>sed</code>. A <code>sed</code> filter would break if the script part (which follows the options string) contained a double hyphen (<code>--</code>) surrounded by one or more spaces.
+        </td>
+    </tr>
+    <tr>
+        <td>
             <a href='https://github.com/linguisticmind/pretty-declare-print/releases/tag/v0.1.5'>0.1.5</a>
         </td>
         <td>

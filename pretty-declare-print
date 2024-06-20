@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-version=0.1.5
+version=0.1.6
 
 getopt -T > /dev/null
 [[ $? != 4 ]] && { printf '[%s] %s\n' "${BASH_SOURCE##*/}" 'Enhanced getopt is required to run this script.' >&2; exit 1; }
@@ -507,7 +507,7 @@ printf '%s\0%s\n%s\n' "$lib_dir" "$(declare -p opt_sort_associative_arrays opt_m
         [[ $arg ]] && sed_opts+=("$arg")
       done < <(<<<"${sed_script%%+([[:space:]])--+([[:space:]])*}" xargs printf '%s\0')
     fi
-    sed_script="${sed_script##*+([[:space:]])--+([[:space:]])}"
+    sed_script="${sed_script##+([[:space:]])--+([[:space:]])}"
     data=$(<<<"$data" sed "${sed_opts[@]}" "$sed_script")
   done
   printf '%s\n' "$data"
