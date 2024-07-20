@@ -10,6 +10,8 @@ Video tutorial:
 
 [![Mindful Technology - [Bash scripting #6] declare -p + pretty-declare-print: a better way to view values of Bash variables](https://img.youtube.com/vi/lO6avzX2QBg/0.jpg)](https://www.youtube.com/watch?v=lO6avzX2QBg)
 
+<a href='https://ko-fi.com/linguisticmind'><img src='https://github.com/linguisticmind/linguisticmind/raw/master/res/kofi/kofi_donate_1.svg' alt='Support me on Ko-fi' height='48'></a>
+
 ## Changelog
 
 <table>
